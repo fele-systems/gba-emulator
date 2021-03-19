@@ -38,6 +38,10 @@ public:
      * @return bool Returns false is the opcode wasn't processed.
      */
     bool cycle();
+    
+    bool cycle_arm();
+    
+    bool cycle_thumb();
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;

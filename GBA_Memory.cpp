@@ -29,3 +29,11 @@ uint32_t GBA_Memory::read_word(uint32_t address) const
         | (memory_buffer[address + 2] << 16)
         | (memory_buffer[address + 3] << 24);
 }
+
+void GBA_Memory::write_word(uint32_t address, uint32_t word)
+{
+    memory_buffer[address] = word & 0xFF;
+    memory_buffer[address + 1] = (word >> 8) & 0xFF;
+    memory_buffer[address + 2] = (word >> 16) & 0xFF;
+    memory_buffer[address + 3] = (word >> 24) & 0xFF;
+}

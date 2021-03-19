@@ -43,7 +43,7 @@ const char* disasemble_condition(uint8_t cond_bits)
 }
 
 
-std::string disassemble_LDR_immediate(uint32_t self)
+std::string disassemble_LDR_STR_immediate(uint32_t self)
 {
     uint8_t condition = (self >> 28);
     bool _I = (self >> 25) & 1; // 1=Register 0=Imm
@@ -51,7 +51,7 @@ std::string disassemble_LDR_immediate(uint32_t self)
     bool _U = (self >> 23) & 1; // 1=Add offset 0=Substract offset
     bool _B = (self >> 22) & 1; // 1=u8 0=i32
     bool _W = (self >> 21) & 1; // P=1 1=Write back P=0 1=User mode access
-            
+    bool _L = (self >> 20) & 1; // 1=Load 0=Store
     uint8_t _Rn = (self >> 16) & 0xF; // Base register
     uint8_t _Rd = (self >> 12) & 0xF; // Destination register
     int offset = self & 0xFFF;
@@ -60,12 +60,13 @@ std::string disassemble_LDR_immediate(uint32_t self)
     {
         if (_P)
         {
-            return fmt::format("LDR{}{} {}, [{} {}#{:#x}]{}",
+            return fmt::format("{}{}{} {}, [{} {}#{:#x}]{}",
+                _L ? "LDR" : "STR",
                 disasemble_condition(condition),
                 _B ? "B" : "",
                 disassemble_register_name(_Rd),
                 disassemble_register_name(_Rn),
-                _U ? "+" : "-",
+                _U ? "" : "-",
                 offset,
                 _W ? "!" : "");
         }
@@ -73,6 +74,7 @@ std::string disassemble_LDR_immediate(uint32_t self)
     
     return "opcode?";
 }
+
 
 std::string disassemble_B(const GBA_Cpu& cpu, uint32_t self)
 {
@@ -100,4 +102,78 @@ std::string disassemble_B(const GBA_Cpu& cpu, uint32_t self)
             return fmt::format("B{} #{:#x} // ${:#x}", disasemble_condition(condition), decoded_offset, target_address);
         }
     }
+}
+
+std::string disassemble_ADD(uint32_t self)
+{
+    uint8_t condition = (self >> 28);
+    
+    bool _I = (self >> 25) & 1; // 2nd operand is 1=Immediate 0=Register
+    bool _S = (self >> 20) & 1; // 0=ADD 1=ADDS
+    uint8_t dest = (self >> 12) & 0x0F;
+    uint8_t op_1 = (self >> 16) & 0x0F;
+    
+    if (!_S && _I) {
+        uint8_t shift = (self >> 8) & 0x0F;
+        uint8_t immediate = self & 0xFF;
+        
+        auto op_2 = rotr32(immediate, shift);
+        return fmt::format("ADD{}{} {}, {}, #{:#x}",
+            _S ? "S" : "",
+            disasemble_condition(condition),
+            disassemble_register_name(dest),
+            disassemble_register_name(op_1),
+            op_2);
+    }
+    return "opcode?";
+}
+
+std::string disassemble_BX(const GBA_Cpu& cpu, uint32_t self)
+{
+    uint8_t condition = (self >> 28);
+    uint8_t _B = (self >> 4) & 0x0F;
+    uint8_t _Rn = self & 0x0F;
+    
+    if (_B == 0b0001)
+    {
+        return fmt::format("BX{} {} // ${:#x}",
+                           disasemble_condition(condition), 
+                           disassemble_register_name(_Rn), 
+                           cpu.R[_Rn]);
+    }
+    else if (_B == 0b0010)
+    {
+        return "BXJ?";
+    }
+    else if (_B == 0b0011)
+    {
+        return fmt::format("BLX{} {} // ${:#x}",
+                           disasemble_condition(condition), 
+                           disassemble_register_name(_Rn), 
+                           cpu.R[_Rn]);
+    }
+    
+    return "BX?";
+}
+
+std::string disassemble_MOV(uint32_t self)
+{
+    uint8_t condition = self >> 28;
+    bool _I = (self >> 25) & 1;
+    bool _S = (self >> 20) & 1;
+    uint8_t _Rd = (self >> 12) & 0x0F;
+    uint8_t shift = (self >> 8) & 0x0F;
+    uint8_t immediate = self & 0xFF;
+        
+    if (_I)
+    {
+        uint32_t op_2 = rotr32(immediate, shift);
+        return fmt::format("MOV{}{} {} #{:#x}",
+                           _S ? "S" : "",
+                           disasemble_condition(condition),
+                           disassemble_register_name(_Rd),
+                           op_2);
+    }
+    
+    return "MOV?";
 }

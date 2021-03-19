@@ -42,11 +42,26 @@ bool GBA_Cpu::cycle()
     {
         handled = execute_LDR_immediate(*this, executing);
     }
+    else if (is_STR_immediate(executing))
+    {
+        handled = execute_STR_immediate(*this, executing);
+    }
     else if (is_B(executing)) // bits[27-25]=101
     {
         handled = execute_B(*this, executing);
     }
-    
+    else if (is_ADD(executing))
+    {
+        handled = execute_ADD(*this, executing);
+    }
+    else if (is_BX(executing))
+    {
+        handled = execute_BX(*this, executing);
+    }
+    else if (is_MOV(executing))
+    {
+        handled = execute_MOV(*this, executing);
+    }
         
     if (!handled) // Skip this switch if already handled
     switch ((executing >> 24) & 0b00001110) // Opcode mask
@@ -123,6 +138,9 @@ bool GBA_Cpu::cycle()
                 bool write_to_extension = (executing >> 17) & 0x01;
                 bool write_to_control   = (executing >> 16) & 0x01;
                 assert( ((executing >> 12) & 0x0F) == 0x0F);
+                
+                if (!(((executing >> 4) & 0xFF) == 0x0))
+                    break;
                 
                 assert( ((executing >> 4) & 0xFF) == 0x0); // Must be 0 for this. Otherwise BX
                 int src_register = executing & 0x0F;

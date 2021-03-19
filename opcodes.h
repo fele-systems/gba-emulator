@@ -37,9 +37,30 @@ inline bool is_B(uint32_t self)
     return (self & 0x0E000000) == 0x0A000000;
 }
 
+bool execute_BX(GBA_Cpu& cpu, uint32_t self);
+
+inline bool is_BX(uint32_t self)
+{
+    return ((self >> 8) & 0x0FFFFF) == 0b00010010111111111111;
+}
+
 bool execute_ADD(GBA_Cpu& cpu, uint32_t self);
 
 inline bool is_ADD(uint32_t self)
 {
     return (self & 0xFE00000) == 0x02800000;
+}
+
+bool execute_STR_immediate(GBA_Cpu& cpu, uint32_t self);
+
+inline bool is_STR_immediate(uint32_t self)
+{
+    return (self & 0xc100000) == 0x4000000;
+}
+
+bool execute_MOV(GBA_Cpu& cpu, uint32_t self);
+
+inline bool is_MOV(uint32_t self)
+{
+    return (self & 0xDEF0000) == 0x1A00000;
 }
