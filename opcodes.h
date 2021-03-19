@@ -64,3 +64,24 @@ inline bool is_MOV(uint32_t self)
 {
     return (self & 0xDEF0000) == 0x1A00000;
 }
+
+bool execute_LDR_thumb_1(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_LDR_thumb_1(uint16_t self)
+{
+    return (self & 0xF800) == 0x6800;
+}
+
+bool execute_LDR_thumb_3(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_LDR_thumb_3(uint16_t self)
+{
+    return (self & 0xF800) == 0x4800;
+}
+
+bool execute_LSLS_thumb_1(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_LSLS_thumb_1(uint16_t self)
+{
+    return (self & 0xF800) == 0x0000;
+}

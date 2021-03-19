@@ -11,23 +11,40 @@ GBA_Cpu::GBA_Cpu(GBA_Memory& memory)
 
 void GBA_Cpu::flush_pipeline()
 {
-    // Prepare the pipeline...
-    executing = memory.read_word(R[15]);
-    R[15] += instruction_size;
-    decoding = memory.read_word(R[15]);
-    R[15] += instruction_size;
-    fetching = memory.read_word(R[15]);
+    if (mode == ExecutionMode::ARM)
+    {
+        executing = memory.read_word(R[15]);
+        R[15] += instruction_size;
+        decoding = memory.read_word(R[15]);
+        R[15] += instruction_size;
+        fetching = memory.read_word(R[15]);
+    }
+    else
+    {
+        executing = memory.read_halfword(R[15]);
+        R[15] += instruction_size;
+        decoding = memory.read_halfword(R[15]);
+        R[15] += instruction_size;
+        fetching = memory.read_halfword(R[15]);
+    }
 }
 
 void GBA_Cpu::fetch_next()
 {
-    R[15] += 4;
+    R[15] += instruction_size;
     executing = decoding;
     decoding = fetching;
-    fetching = memory.read_word(R[15]);
+    if (mode == ExecutionMode::ARM)
+    {
+        fetching = memory.read_word(R[15]);
+    }
+    else
+    {
+        fetching = memory.read_halfword(R[15]);
+    }
 }   
 
-bool GBA_Cpu::cycle()
+bool GBA_Cpu::cycle_arm()
 {
     uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
     auto debug_info = fmt::format(" ; PC={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x} {:0>2x} {:0>2x}", R[15], executing,
@@ -170,4 +187,63 @@ bool GBA_Cpu::cycle()
     else 
         std::cout << debug_info << std::endl;
     return handled;
+}
+
+bool GBA_Cpu::cycle_thumb()
+{
+    uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
+    auto debug_info = fmt::format(" ; PC={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x}", R[15], static_cast<uint16_t>(executing),
+        (int)executing_bytes[0],
+        (int)executing_bytes[1]);
+    auto handled = false;
+
+    auto opcode = static_cast<uint16_t>(executing);
+    if (is_LDR_thumb_1(opcode))
+    {
+        handled = execute_LDR_thumb_1(*this, opcode);
+    }
+    else if (is_LDR_thumb_3(opcode))
+    {
+        handled = execute_LDR_thumb_3(*this, opcode);
+    }
+    else if (is_LSLS_thumb_1(opcode))
+    {
+        handled = execute_LSLS_thumb_1(*this, opcode);
+    }
+    if (!handled)
+        std::cout << "Unhandled opcode: " << debug_info << std::endl;
+    else
+        std::cout << debug_info << std::endl;
+    return handled;
+}
+
+bool GBA_Cpu::cycle()
+{
+    if (mode == ExecutionMode::ARM)
+    {
+        return cycle_arm();
+    }
+    else
+    {
+        return cycle_thumb();
+    }
+}
+
+void GBA_Cpu::set_mode(ExecutionMode new_mode)
+{
+    bool has_changed = mode != new_mode;
+    if (new_mode == ExecutionMode::ARM)
+    {
+        mode = ExecutionMode::ARM;
+        instruction_size = 4;
+        if (has_changed)
+            std::cout << ".ARM";
+    }
+    else
+    {
+        mode = ExecutionMode::THUMB;
+        instruction_size = 2;
+        if (has_changed)
+            std::cout << ".THUMB";
+    }
 }

@@ -9,6 +9,8 @@
 class GBA_Cpu
 {
 public:
+    enum class ExecutionMode { ARM, THUMB };
+
     GBA_Cpu(GBA_Memory& memory);
     /**
      * @brief Flushes the execution pipeline.
@@ -42,6 +44,8 @@ public:
     bool cycle_arm();
     
     bool cycle_thumb();
+
+    void set_mode(ExecutionMode new_mode);
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;
@@ -53,4 +57,5 @@ public:
     uint32_t CPSR = 0;
     uint32_t& PC = R[15];
     uint32_t& SP = R[13];
+    ExecutionMode mode = ExecutionMode::ARM;
 };

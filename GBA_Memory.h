@@ -43,6 +43,8 @@ public:
      */
     uint32_t read_word(uint32_t address) const;
     
+    uint16_t read_halfword(uint32_t address) const;
+
     void write_word(uint32_t address, uint32_t word);
 private:
     std::vector<uint8_t> memory_buffer;

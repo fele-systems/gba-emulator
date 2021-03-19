@@ -3,7 +3,7 @@
 #include <cassert>
 
 GBA_Memory::GBA_Memory()
-    : memory_buffer(0xFFFFFFFF, 0u)
+    : memory_buffer(0x0FFFFFFF, 0u)
 {
 }
 
@@ -24,16 +24,22 @@ void GBA_Memory::load_rom(std::ifstream& gba_file, GBA_CartridgeHeader* header_p
 
 uint32_t GBA_Memory::read_word(uint32_t address) const
 {
-    return memory_buffer[address]
-        | (memory_buffer[address + 1] << 8)
-        | (memory_buffer[address + 2] << 16)
-        | (memory_buffer[address + 3] << 24);
+    return memory_buffer[size_t(address)]
+        | (memory_buffer[size_t(address) + 1] << 8)
+        | (memory_buffer[size_t(address) + 2] << 16)
+        | (memory_buffer[size_t(address) + 3] << 24);
+}
+
+uint16_t GBA_Memory::read_halfword(uint32_t address) const
+{
+    return memory_buffer[size_t(address)]
+        | (memory_buffer[size_t(address) + 1] << 8);
 }
 
 void GBA_Memory::write_word(uint32_t address, uint32_t word)
 {
-    memory_buffer[address] = word & 0xFF;
-    memory_buffer[address + 1] = (word >> 8) & 0xFF;
-    memory_buffer[address + 2] = (word >> 16) & 0xFF;
-    memory_buffer[address + 3] = (word >> 24) & 0xFF;
+    memory_buffer[size_t(address)] = word & 0xFF;
+    memory_buffer[size_t(address) + 1] = (word >> 8) & 0xFF;
+    memory_buffer[size_t(address) + 2] = (word >> 16) & 0xFF;
+    memory_buffer[size_t(address) + 3] = (word >> 24) & 0xFF;
 }

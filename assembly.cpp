@@ -177,3 +177,38 @@ std::string disassemble_MOV(uint32_t self)
     
     return "MOV?";
 }
+
+std::string disassemble_LDR_thumb_3(uint16_t self)
+{
+    uint8_t _V = self & 0xFF;
+    uint8_t _Rd = (self >> 8) & 0x07;
+
+    return fmt::format("LDR {}, [PC, #{:#x}]",
+                       disassemble_register_name(_Rd),
+                       _V * 4);
+   
+}
+
+std::string disassemble_LSLS_thumb_1(uint16_t self)
+{
+    uint8_t _V = (self >> 6) & 0x1F;
+    uint8_t _Rn = (self >> 3) & 0x07;
+    uint8_t _Rd = self & 0x07;
+
+    return fmt::format("LSLS {}, {}, #{:#x}",
+                       disassemble_register_name(_Rd),
+                       disassemble_register_name(_Rn),
+                       _V);
+}
+
+std::string disassemble_LDR_thumb_1(uint16_t self)
+{
+    uint8_t _V = (self >> 6) & 0x1F;
+    uint8_t _Rs = (self >> 3) & 0x07;
+    uint8_t _Rd = self & 0x07;
+
+    return fmt::format("LDR {}, [{}, #{:#x}]",
+                       disassemble_register_name(_Rd),
+                       disassemble_register_name(_Rs),
+                       _V * 4);
+}

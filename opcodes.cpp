@@ -80,7 +80,7 @@ bool execute_BX(GBA_Cpu& cpu, uint32_t self)
         if (_T)
         {
             cpu.PC = cpu.R[_Rn] - 1;
-            cpu.set_mode(GBA_Cpu::THUMB);
+            cpu.set_mode(GBA_Cpu::ExecutionMode::THUMB);
             cpu.flush_pipeline();
             return true;
         }
@@ -102,7 +102,7 @@ bool execute_BX(GBA_Cpu& cpu, uint32_t self)
         {
             cpu.SP = cpu.PC + cpu.instruction_size;
             cpu.PC = cpu.R[_Rn] - 1;
-            cpu.set_mode(GBA_Cpu::THUMB);
+            cpu.set_mode(GBA_Cpu::ExecutionMode::THUMB);
             cpu.flush_pipeline();
             return true;
         }
@@ -192,4 +192,42 @@ bool execute_MOV(GBA_Cpu& cpu, uint32_t self)
     }
     
     return false;
+}
+
+bool execute_LDR_thumb_1(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_LDR_thumb_1(self));
+    std::cout << disassemble_LDR_thumb_1(self);
+    uint8_t _V = (self >> 6) & 0x1F;
+    uint8_t _Rs = (self >> 3) & 0x07;
+    uint8_t _Rd = self & 0x07;
+
+    cpu.R[_Rd] = cpu.R[_Rs] + (_V * 4);
+    cpu.fetch_next();
+    return true;
+}
+
+bool execute_LDR_thumb_3(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_LDR_thumb_3(self));
+    std::cout << disassemble_LDR_thumb_3(self);
+    uint8_t _V = self & 0xFF;
+    uint8_t _Rd = (self >> 8) & 0x07;
+
+    cpu.R[_Rd] = cpu.PC + (_V * 4);
+    cpu.fetch_next();
+    return true;
+}
+
+bool execute_LSLS_thumb_1(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_LSLS_thumb_1(self));
+    std::cout << disassemble_LSLS_thumb_1(self);
+    uint8_t _V = (self >> 6) & 0x1F;
+    uint8_t _Rn = (self >> 3) & 0x07;
+    uint8_t _Rd = self & 0x07;
+
+    cpu.R[_Rd] = cpu.R[_Rn] << _V;
+    cpu.fetch_next();
+    return true;
 }
