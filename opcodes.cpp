@@ -8,7 +8,9 @@
 bool execute_LDR_immediate(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_LDR_immediate(self));
-    // uint8_t condition = (self >> 28);
+    uint8_t condition = (self >> 28);
+    if (!cpu.test_cond(condition))
+        return true;
     bool _I = (self >> 25) & 1; // 1=Register 0=Imm
     //bool _P = (self >> 24) & 1; // 1=Pre-indexed 0=Post-indexed
     bool _U = (self >> 23) & 1; // 1=Add offset 0=Substract offset
@@ -40,6 +42,8 @@ bool execute_LDR_immediate(GBA_Cpu& cpu, uint32_t self)
 bool execute_B(GBA_Cpu& cpu, uint32_t self)
 {
     uint8_t condition = (self >> 28);
+    if (!cpu.test_cond(condition))
+        return true;
     std::cout << disassemble_B(cpu, self);
     if (condition == 0x0F) // BLX
     {
@@ -70,7 +74,9 @@ bool execute_BX(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_BX(self));
     std::cout << disassemble_BX(cpu, self);
-    // uint8_t condition = (self >> 28);
+    uint8_t condition = (self >> 28);
+    if (!cpu.test_cond(condition))
+        return true;
     uint8_t _B = (self >> 4) & 0x0F;
     uint8_t _Rn = self & 0x0F;
     bool _T = cpu.R[_Rn] & 1; // 1=Thumb 0=Arm
@@ -122,7 +128,9 @@ bool execute_BX(GBA_Cpu& cpu, uint32_t self)
 bool execute_ADD(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_ADD(self));
-    // uint8_t condition = (self >> 28);
+    uint8_t condition = (self >> 28);
+    if (!cpu.test_cond(condition))
+        return true;
     std::cout << disassemble_ADD(self);
     bool _I = (self >> 25) & 1; // 2nd operand is 1=Immediate 0=Register
     bool _S = (self >> 20) & 1; // 0=ADD 1=ADDS
@@ -133,7 +141,7 @@ bool execute_ADD(GBA_Cpu& cpu, uint32_t self)
         uint8_t shift = (self >> 8) & 0x0F;
         uint8_t immediate = self & 0xFF;
         
-        auto op_2 = rotr32(immediate, shift);
+        auto op_2 = rotr32_shiftsq(immediate, shift);
         cpu.R[dest] = cpu.R[op_1] + op_2;
         cpu.fetch_next();
         return true;
@@ -144,7 +152,9 @@ bool execute_ADD(GBA_Cpu& cpu, uint32_t self)
 bool execute_STR_immediate(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_STR_immediate(self));
-    // uint8_t condition = (self >> 28);
+    uint8_t condition = (self >> 28);
+    if (!cpu.test_cond(condition))
+        return true;
     bool _I = (self >> 25) & 1; // 1=Register 0=Imm
     //bool _P = (self >> 24) & 1; // 1=Pre-indexed 0=Post-indexed
     bool _U = (self >> 23) & 1; // 1=Add offset 0=Substract offset
@@ -175,8 +185,10 @@ bool execute_STR_immediate(GBA_Cpu& cpu, uint32_t self)
 bool execute_MOV(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_MOV(self));
+    uint8_t condition = self >> 28;
+    if (!cpu.test_cond(condition))
+        return true;
     std::cout << disassemble_MOV(self);
-    // uint8_t condition = self >> 28;
     bool _I = (self >> 25) & 1;
     bool _S = (self >> 20) & 1;
     uint8_t _Rd = (self >> 12) & 0x0F;
@@ -185,7 +197,7 @@ bool execute_MOV(GBA_Cpu& cpu, uint32_t self)
         
     if (_I && !_S)
     {
-        uint32_t op_2 = rotr32(immediate, shift);
+        uint32_t op_2 = rotr32_shiftsq(immediate, shift);
         cpu.R[_Rd] = op_2;
         cpu.fetch_next();
         return true;
@@ -227,7 +239,41 @@ bool execute_LSLS_thumb_1(GBA_Cpu& cpu, uint16_t self)
     uint8_t _Rn = (self >> 3) & 0x07;
     uint8_t _Rd = self & 0x07;
 
-    cpu.R[_Rd] = cpu.R[_Rn] << _V;
+    uint32_t value = cpu.R[_Rn] << _V;
+    
+    GBA_Cpu::CPSR_pack cpsr { cpu.CPSR };
+    
+    cpsr.zero_flag = value == 0;
+    cpsr.sign_flag = (value >> 31) & 1;
+    cpsr.carry_flag = value < cpu.R[_Rn];
+    
+    cpu.R[_Rd] = value;
+    cpu.CPSR = static_cast<uint32_t>(cpsr);
     cpu.fetch_next();
+    return true;
+}
+
+bool execute_B_thumb_1(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_B_thumb_1(self));
+    uint8_t condition = (self >> 8) & 0x0F;
+    if (!cpu.test_cond(condition))
+        return true;
+    std::cout << disassemble_B_thumb_1(cpu, self);
+    uint8_t target = self & 0xFF;
+    
+    cpu.PC += target * 2;
+    cpu.flush_pipeline();
+    return true;
+}
+
+bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_B_thumb_2(self));
+    std::cout << disassemble_B_thumb_2(cpu, self);
+    uint16_t target = self & 0x7FF;
+    
+    cpu.PC += target * 2;
+    cpu.flush_pipeline();
     return true;
 }

@@ -1,6 +1,7 @@
 #include "GBA_Cpu.h"
 #include "assembly.h"
 #include <cassert>
+#include <bitset>
 
 GBA_Cpu::GBA_Cpu(GBA_Memory& memory)
     : memory(memory)
@@ -44,10 +45,40 @@ void GBA_Cpu::fetch_next()
     }
 }   
 
+GBA_Cpu::CPSR_pack::CPSR_pack(uint32_t value)
+{
+    std::bitset<32> set = value;
+    sign_flag = set[31];
+    zero_flag = set[30];
+    carry_flag = set[29];
+    overflow_flag = set[28];
+    sticky_overflow = set[27];
+    IRQ_disable = set[7];
+    FIQ_disable = set[6];
+    state_bit = set[5];
+    mode_bits = (value & 0x1F);
+}
+
+GBA_Cpu::CPSR_pack::operator uint32_t() const
+{
+    std::bitset<32> set{ 0 };
+    set[31] = sign_flag;
+    set[30] = zero_flag;
+    set[29] = carry_flag;
+    set[28] = overflow_flag;
+    set[27] = sticky_overflow;
+    set[7] = IRQ_disable;
+    set[6] = FIQ_disable;
+    set[5] = state_bit;
+    
+    return (static_cast<uint32_t>(set.to_ulong()) | (mode_bits & 0x1F));
+}
+
 bool GBA_Cpu::cycle_arm()
 {
+    debug_save_registers();
     uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
-    auto debug_info = fmt::format(" ; PC={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x} {:0>2x} {:0>2x}", R[15], executing,
+    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x} {:0>2x} {:0>2x}", PC, PC - instruction_size * 2, executing,
                                   (int)executing_bytes[0],
                                   (int)executing_bytes[1],
                                   (int)executing_bytes[2],
@@ -95,7 +126,7 @@ bool GBA_Cpu::cycle_arm()
                 bool set_condition = (executing >> 20) & 1;
                 uint8_t position = (executing >> 8) & 0x0F;
                 int8_t _8bit_imm = executing & 0xFF;
-                uint32_t second_operand = rotr32(_8bit_imm, position);
+                uint32_t second_operand = rotr32_shiftsq(_8bit_imm, position);
 
                 fmt::print("ADC{}{} R{}, R{}, {}",
                             disasemble_condition(condition),
@@ -115,7 +146,7 @@ bool GBA_Cpu::cycle_arm()
                 bool set_condition = (executing >> 20) & 1;
                 uint8_t position = (executing >> 8) & 0x0F;
                 int8_t _8bit_imm = executing & 0xFF;
-                uint32_t second_operand = rotr32(_8bit_imm, position);
+                uint32_t second_operand = rotr32_shiftsq(_8bit_imm, position);
 
                 fmt::print("MOV{}{} R{}, #{}",
                             disasemble_condition(condition),
@@ -186,13 +217,17 @@ bool GBA_Cpu::cycle_arm()
         std::cout << "Unhandled opcode: " << debug_info << std::endl;
     else 
         std::cout << debug_info << std::endl;
+    
+    debug_print_register_changes();
+    
     return handled;
 }
 
 bool GBA_Cpu::cycle_thumb()
 {
+    debug_save_registers();
     uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
-    auto debug_info = fmt::format(" ; PC={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x}", R[15], static_cast<uint16_t>(executing),
+    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x}", PC, PC - instruction_size * 2, static_cast<uint16_t>(executing),
         (int)executing_bytes[0],
         (int)executing_bytes[1]);
     auto handled = false;
@@ -210,10 +245,22 @@ bool GBA_Cpu::cycle_thumb()
     {
         handled = execute_LSLS_thumb_1(*this, opcode);
     }
+    else if (is_B_thumb_1(opcode))
+    {
+        handled = execute_B_thumb_1(*this, opcode);
+    }
+    else if (is_B_thumb_2(opcode))
+    {
+        handled = execute_B_thumb_2(*this, opcode);
+    }
+    
     if (!handled)
         std::cout << "Unhandled opcode: " << debug_info << std::endl;
     else
         std::cout << debug_info << std::endl;
+    
+    debug_print_register_changes();
+    
     return handled;
 }
 
@@ -245,5 +292,74 @@ void GBA_Cpu::set_mode(ExecutionMode new_mode)
         instruction_size = 2;
         if (has_changed)
             std::cout << ".THUMB";
+    }
+}
+
+void GBA_Cpu::debug_save_registers()
+{
+    std::copy_n(R, 15, R_bak);
+    CPSR_bak = CPSR;
+}
+        
+    
+void GBA_Cpu::debug_print_register_changes() const
+{
+    for (int i = 0; i < 15; i++)
+    {
+        if (R[i] != R_bak[i])
+        {
+            std::cout << RED << fmt::format("r{} -> {:#x}", i, R[i]) << RESET << std::endl;
+        }
+    }
+    
+    CPSR_pack cpsr { CPSR };
+    CPSR_pack cpsr_bak { CPSR_bak };
+    
+    std::cout << RED;
+    if (cpsr.sign_flag != cpsr_bak.sign_flag)
+        std::cout << "N=" << cpsr.sign_flag << ' ';
+    if (cpsr.zero_flag != cpsr_bak.zero_flag)
+        std::cout << "Z=" << cpsr.zero_flag << ' ';
+    if (cpsr.carry_flag != cpsr_bak.carry_flag)
+        std::cout << "C=" << cpsr.carry_flag << ' ';
+    if (cpsr.overflow_flag != cpsr_bak.overflow_flag)
+        std::cout << "V=" << cpsr.overflow_flag << ' ';
+    if (cpsr.sticky_overflow != cpsr_bak.sticky_overflow)
+        std::cout << "Q=" << cpsr.sticky_overflow << ' ';
+    if (cpsr.IRQ_disable != cpsr_bak.IRQ_disable)
+        std::cout << "I=" << cpsr.IRQ_disable << ' ';
+    if (cpsr.FIQ_disable != cpsr_bak.FIQ_disable)
+        std::cout << "F=" << cpsr.FIQ_disable << ' ';
+    if (cpsr.state_bit != cpsr_bak.state_bit)
+        std::cout << "T=" << cpsr.state_bit << ' ';
+    if (cpsr.mode_bits != cpsr_bak.mode_bits)
+        std::cout << "M=" << fmt::format("{:#x}", cpsr.mode_bits) << ' ';
+    
+    std::cout << RESET << std::endl;
+}
+
+bool GBA_Cpu::test_cond(uint8_t condition_bits) const
+{
+    CPSR_pack cpsr { CPSR };
+    assert(condition_bits <= 0xF);
+    switch (condition_bits)
+    {
+        case 0x0:   return cpsr.zero_flag;  // EQ
+        case 0x1:   return !cpsr.zero_flag; // NE
+        case 0x2:   return cpsr.carry_flag; // CS
+        case 0x3:   return !cpsr.carry_flag;// CC
+        case 0x4:   return cpsr.sign_flag;  // MI
+        case 0x5:   return !cpsr.sign_flag; // PL
+        case 0x6:   return cpsr.overflow_flag;  // VS
+        case 0x7:   return !cpsr.overflow_flag; // VC
+        case 0x8:   return cpsr.carry_flag && !cpsr.zero_flag; // HI
+        case 0x9:   return !cpsr.carry_flag || cpsr.zero_flag; // LS
+        case 0xA:   return cpsr.sign_flag == cpsr.overflow_flag; // GE
+        case 0xB:   return cpsr.sign_flag != cpsr.overflow_flag; // LT
+        case 0xC:   return !cpsr.zero_flag && cpsr.sign_flag == cpsr.overflow_flag; // GT
+        case 0xD:   return cpsr.zero_flag || cpsr.sign_flag == cpsr.overflow_flag; // LE
+        case 0xE:   return true;
+        case 0xF:   return false;
+        default:    return true;
     }
 }

@@ -24,3 +24,7 @@ std::string disassemble_LDR_thumb_1(uint16_t self);
 std::string disassemble_LDR_thumb_3(uint16_t self);
 
 std::string disassemble_LSLS_thumb_1(uint16_t self);
+
+std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint32_t self);
+
+std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint32_t self);

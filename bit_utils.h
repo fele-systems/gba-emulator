@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 /**
  * @brief Rotate a 8-bit vale inside a 32-bit bondary to right.
@@ -9,9 +10,12 @@
  * @param shift p_shift: Half of shift amount.
  * @return uint32_t 32-bit word.
  */
+uint32_t rotr32_shiftsq(uint8_t value, uint8_t shift);
+
+
 uint32_t rotr32(uint8_t value, uint8_t shift);
 
-
+uint32_t rotl32(uint8_t value, uint8_t shift);
 
 /**
  * @brief Extends a signed int to the desired size.

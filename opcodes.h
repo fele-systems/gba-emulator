@@ -85,3 +85,17 @@ inline bool is_LSLS_thumb_1(uint16_t self)
 {
     return (self & 0xF800) == 0x0000;
 }
+
+bool execute_B_thumb_1(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_B_thumb_1(uint16_t self)
+{
+    return (self & 0xF000) == 0xD000;
+}
+
+bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_B_thumb_2(uint16_t self)
+{
+    return (self & 0xF100) == 0xE000;
+}

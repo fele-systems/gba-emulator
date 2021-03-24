@@ -24,8 +24,8 @@ const char* disasemble_condition(uint8_t cond_bits)
     {
         case 0x0:   return "EQ";
         case 0x1:   return "NE";
-        case 0x2:   return "CS/HS";
-        case 0x3:   return "CC/LO";
+        case 0x2:   return "CS"; // /HS
+        case 0x3:   return "CC"; // /LO
         case 0x4:   return "MI";
         case 0x5:   return "PL";
         case 0x6:   return "VS";
@@ -117,7 +117,7 @@ std::string disassemble_ADD(uint32_t self)
         uint8_t shift = (self >> 8) & 0x0F;
         uint8_t immediate = self & 0xFF;
         
-        auto op_2 = rotr32(immediate, shift);
+        auto op_2 = rotr32_shiftsq(immediate, shift);
         return fmt::format("ADD{}{} {}, {}, #{:#x}",
             _S ? "S" : "",
             disasemble_condition(condition),
@@ -167,7 +167,7 @@ std::string disassemble_MOV(uint32_t self)
         
     if (_I)
     {
-        uint32_t op_2 = rotr32(immediate, shift);
+        uint32_t op_2 = rotr32_shiftsq(immediate, shift);
         return fmt::format("MOV{}{} {} #{:#x}",
                            _S ? "S" : "",
                            disasemble_condition(condition),
@@ -211,4 +211,24 @@ std::string disassemble_LDR_thumb_1(uint16_t self)
                        disassemble_register_name(_Rd),
                        disassemble_register_name(_Rs),
                        _V * 4);
+}
+
+std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint32_t self)
+{
+    uint8_t condition = (self >> 8) & 0x0F;
+    uint8_t target = self & 0xFF;
+    
+    return fmt::format("B{} #{:#x} // ${:#x}",
+                       disasemble_condition(condition),
+                       target,
+                       2 * (cpu.PC + target) + cpu.instruction_size * 2);
+}
+
+std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint32_t self)
+{
+    uint16_t target = self & 0x7FF;
+    
+    return fmt::format("B #{:#x} // ${:#x}",
+                       target,
+                       2 * (cpu.PC + target) + cpu.instruction_size * 2);
 }
