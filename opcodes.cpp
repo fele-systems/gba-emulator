@@ -277,3 +277,26 @@ bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self)
     cpu.flush_pipeline();
     return true;
 }
+
+bool execute_MOVS_thumb_1(GBA_Cpu& cpu, uint16_t self)
+{
+//     Syntax: MOVS Rd, #8imm8
+// 
+// Moves a 8bit immediate to register Rd.
+// 
+// Flags: NZ
+// 
+// Encoding
+// [0, 7] 8 bit immediate
+// [8, 10] Register number (R0..R7)
+// [11, 15] Must be 0b00100 for this instruction
+   
+    assert(is_MOVS_thumb_1(self));
+    std::cout << disassemble_MOVS_thumb_1(self);
+    
+    uint8_t Rd = (self >> 10) & 0x07;
+    uint8_t value = (self & 0xFF);
+    
+    cpu.R[Rd] = value;
+    return true;
+}

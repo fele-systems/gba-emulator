@@ -99,3 +99,82 @@ inline bool is_B_thumb_2(uint16_t self)
 {
     return (self & 0xF100) == 0xE000;
 }
+
+/**
+ * @brief Execute MOVS with unshifted Immediate.
+ * 
+ * Syntax: MOVS Rd, #8imm8
+ * 
+ * Moves a 8bit immediate to register Rd.
+ * 
+ * Flags: NZ
+ * 
+ * Encoding
+ * [0, 7] 8 bit immediate
+ * [8, 10] Register number (R0..R7)
+ * [11, 15] Must be 0b00100 for this instruction
+ * 
+ * @param cpu p_cpu: The cpu who's executing this instruction.
+ * @param self p_self: The opcode to be executed.
+ * @return bool Whether the opcode was handled.
+ */
+bool execute_MOVS_thumb_1(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_MOVS_thumb_1(uint16_t self)
+{
+    return (self & 0xF800) == 0x2000;
+}
+
+/**
+ * @brief Executes MOVS between low registers.
+ * 
+ * Syntax: MOVS Rd, Rs
+ * 
+ * Flags: NZ CV=0
+ * 
+ * Encoding
+ * [0, 2] Destination register (R0..R7)
+ * [3, 5] Source register (R0..R7)
+ * [6, 9] Must be cleared for this instruction
+ * [10,15] Must be 0b000111 for this instruction (opcode id)
+ * 
+ * @remark This is a pseudo instruction equivalent to ADDS Rd, Rs, #0x00
+ * 
+ * @param cpu p_cpu: The cpu who's executing this instruction.
+ * @param self p_self: The opcode to be executed.
+ * @return bool Whether the opcode was handled.
+ */
+bool execute_MOVS_thumb_2(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_MOVS_thumb_2(uint16_t self)
+{
+    return (self & 0xF100) == 0xE000;
+}
+
+/**
+ * @brief Executes MOVS between high registers.
+ * 
+ * Syntax: MOVS Rd, Rs
+ * 
+ * Flags: none
+ * 
+ * Encoding
+ * [0, 2] Lower bits of Rd
+ * [3, 5] Lower bits of Rs
+ * [6] Higher bits of Rs
+ * [7] Higher bits of Rd
+ * [8, 15] 0b01000110
+ * 
+ * @remark Both higher bits must be set. Its only allowed in other instructions within the
+ * same category.
+ * 
+ * @param cpu p_cpu: The cpu who's executing this instruction.
+ * @param self p_self: The opcode to be executed.
+ * @return bool Whether the opcode was handled.
+ */
+bool execute_MOVS_thumb_3(GBA_Cpu& cpu, uint16_t self);
+
+inline bool is_MOVS_thumb_3(uint16_t self)
+{
+    return (self & 0xF100) == 0xE000;
+}

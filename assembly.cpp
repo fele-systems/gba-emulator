@@ -213,7 +213,7 @@ std::string disassemble_LDR_thumb_1(uint16_t self)
                        _V * 4);
 }
 
-std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint32_t self)
+std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint16_t self)
 {
     uint8_t condition = (self >> 8) & 0x0F;
     uint8_t target = self & 0xFF;
@@ -224,7 +224,7 @@ std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint32_t self)
                        2 * (cpu.PC + target) + cpu.instruction_size * 2);
 }
 
-std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint32_t self)
+std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint16_t self)
 {
     uint16_t target = self & 0x7FF;
     
