@@ -280,23 +280,55 @@ bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self)
 
 bool execute_MOVS_thumb_1(GBA_Cpu& cpu, uint16_t self)
 {
-//     Syntax: MOVS Rd, #8imm8
-// 
-// Moves a 8bit immediate to register Rd.
-// 
-// Flags: NZ
-// 
-// Encoding
-// [0, 7] 8 bit immediate
-// [8, 10] Register number (R0..R7)
-// [11, 15] Must be 0b00100 for this instruction
-   
     assert(is_MOVS_thumb_1(self));
     std::cout << disassemble_MOVS_thumb_1(self);
     
     uint8_t Rd = (self >> 10) & 0x07;
     uint8_t value = (self & 0xFF);
     
+    GBA_Cpu::CPSR_pack cpsr{ cpu.CPSR };
+
+    cpsr.sign_flag = static_cast<int8_t>(value) < 0;
+    cpsr.zero_flag = value == 0;
+
+    cpu.CPSR = static_cast<uint32_t>(cpsr);
+
     cpu.R[Rd] = value;
+    cpu.fetch_next();
+    return true;
+}
+
+bool execute_MOVS_thumb_2(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_MOVS_thumb_2(self));
+    std::cout << disassemble_MOVS_thumb_2(self);
+
+    uint8_t Rs = (self >> 3) & 0x07;
+    uint8_t Rd = self & 0x07;
+
+    cpu.R[Rd] = cpu.R[Rs];
+
+    GBA_Cpu::CPSR_pack cpsr{ cpu.CPSR };
+
+    cpsr.sign_flag = static_cast<int32_t>(cpu.R[Rd]) < 0;
+    cpsr.zero_flag = cpu.R[Rd] == 0;
+    cpsr.carry_flag = false;
+    cpsr.overflow_flag = false;
+
+    cpu.CPSR = static_cast<uint32_t>(cpsr);
+    cpu.fetch_next();
+    return true;
+}
+
+bool execute_MOVS_thumb_3(GBA_Cpu& cpu, uint16_t self)
+{
+    assert(is_MOVS_thumb_3(self));
+    std::cout << disassemble_MOVS_thumb_3(self);
+
+    uint8_t Rs = (self & 0x80) | ((self >> 3) & 0x07);
+    uint8_t Rd = (self & 0x40) | (self & 0x07);
+
+    cpu.R[Rd] = cpu.R[Rs];
+
     return true;
 }

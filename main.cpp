@@ -17,6 +17,7 @@ namespace tests
         GBA_Memory mem;
         mem.load_rom(gba_file, nullptr);
         GBA_Cpu cpu { mem };
+        cpu.add_break_point(0x800012a);
         while (cpu.cycle());
         
         

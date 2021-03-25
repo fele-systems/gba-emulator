@@ -232,3 +232,33 @@ std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint16_t self)
                        target,
                        2 * (cpu.PC + target) + cpu.instruction_size * 2);
 }
+
+std::string disassemble_MOVS_thumb_1(uint16_t self)
+{
+    uint8_t Rd = (self >> 10) & 0x07;
+    uint8_t value = (self & 0xFF);
+
+    return fmt::format("MOVS {}, #{:#x}",
+                       disassemble_register_name(Rd),
+                       value);
+}
+
+std::string disassemble_MOVS_thumb_2(uint16_t self)
+{
+    uint8_t Rs = (self >> 3) & 0x07;
+    uint8_t Rd = self & 0x07;
+
+    return fmt::format("MOVS {}, {}",
+                       disassemble_register_name(Rd),
+                       disassemble_register_name(Rs));
+}
+
+std::string disassemble_MOVS_thumb_3(uint16_t self)
+{
+    uint8_t Rs = (self & 0x80) | ((self >> 3) & 0x07);
+    uint8_t Rd = (self & 0x40) | (self & 0x07);
+
+    return fmt::format("MOVS {}, {}",
+                       disassemble_register_name(Rd),
+                       disassemble_register_name(Rs));
+}

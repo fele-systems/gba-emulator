@@ -28,3 +28,9 @@ std::string disassemble_LSLS_thumb_1(uint16_t self);
 std::string disassemble_B_thumb_1(const GBA_Cpu& cpu, uint16_t self);
 
 std::string disassemble_B_thumb_2(const GBA_Cpu& cpu, uint16_t self);
+
+std::string disassemble_MOVS_thumb_1(uint16_t self);
+
+std::string disassemble_MOVS_thumb_2(uint16_t self);
+
+std::string disassemble_MOVS_thumb_3(uint16_t self);

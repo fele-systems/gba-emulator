@@ -88,6 +88,8 @@ public:
     };
     
     bool test_cond(uint8_t condition_bits) const;
+
+    void add_break_point(uint32_t instruction_address);
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;
@@ -103,4 +105,5 @@ public:
     
     uint32_t R_bak[16];
     uint32_t CPSR_bak;
+    std::vector<uint32_t> break_points;
 };

@@ -253,7 +253,19 @@ bool GBA_Cpu::cycle_thumb()
     {
         handled = execute_B_thumb_2(*this, opcode);
     }
-    
+    else if (is_MOVS_thumb_1(opcode))
+    {
+        handled = execute_MOVS_thumb_1(*this, opcode);
+    }
+    else if (is_MOVS_thumb_2(opcode))
+    {
+        handled = execute_MOVS_thumb_2(*this, opcode);
+    }
+    else if (is_MOVS_thumb_3(opcode))
+    {
+        handled = execute_MOVS_thumb_3(*this, opcode);
+    }
+
     if (!handled)
         std::cout << "Unhandled opcode: " << debug_info << std::endl;
     else
@@ -266,6 +278,17 @@ bool GBA_Cpu::cycle_thumb()
 
 bool GBA_Cpu::cycle()
 {
+    auto instr_addr = PC - instruction_size * 2;
+    if (std::find(break_points.begin(), break_points.end(), instr_addr) != break_points.end())
+    {
+        std::cout << "Breakpoint! @" << std::hex << instr_addr << std::endl;
+        for (int i = 0; i < 16; i++)
+        {
+            std::cout << BLUE << fmt::format("r{} = {:#x}", i, R[i]) << RESET << std::endl;
+            
+        }
+    }
+
     if (mode == ExecutionMode::ARM)
     {
         return cycle_arm();
@@ -362,4 +385,9 @@ bool GBA_Cpu::test_cond(uint8_t condition_bits) const
         case 0xF:   return false;
         default:    return true;
     }
+}
+
+void GBA_Cpu::add_break_point(uint32_t instruction_address)
+{
+    break_points.push_back(instruction_address);
 }
