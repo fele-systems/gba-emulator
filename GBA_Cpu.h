@@ -90,6 +90,8 @@ public:
     bool test_cond(uint8_t condition_bits) const;
 
     void add_break_point(uint32_t instruction_address);
+    
+    void find_command(const std::vector<std::string>& tokens) const;
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;
