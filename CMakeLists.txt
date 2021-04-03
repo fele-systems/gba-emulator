@@ -7,7 +7,7 @@ add_executable( ${PROJECT_NAME}
     main.cpp
     opcodes.cpp assembly.cpp
     GBA_Memory.cpp GBA_Cpu.cpp
-    bit_utils.cpp )
+    bit_utils.cpp repl.cpp )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>

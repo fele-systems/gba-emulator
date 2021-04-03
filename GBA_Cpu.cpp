@@ -2,6 +2,7 @@
 #include "assembly.h"
 #include <cassert>
 #include <bitset>
+#include "repl.h"
 
 GBA_Cpu::GBA_Cpu(GBA_Memory& memory)
     : memory(memory)
@@ -390,4 +391,12 @@ bool GBA_Cpu::test_cond(uint8_t condition_bits) const
 void GBA_Cpu::add_break_point(uint32_t instruction_address)
 {
     break_points.push_back(instruction_address);
+}
+
+void GBA_Cpu::find_command(const std::vector<std::string>& tokens) const
+{
+    auto value = REPL_Argument::get_integer(tokens[1]);
+    auto range = REPL_Argument::get_range(tokens[2]);
+    
+    
 }

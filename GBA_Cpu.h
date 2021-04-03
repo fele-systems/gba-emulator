@@ -93,6 +93,8 @@ public:
 private:
     bool cycle_arm();
     bool cycle_thumb();
+    
+    void find_command(const std::vector<std::string>& tokens) const;
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;

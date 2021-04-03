@@ -2,6 +2,7 @@
 #include <fstream>
 #include "GBA_Memory.h"
 #include "GBA_Cpu.h"
+#include "repl.h"
 
 namespace tests
 {
@@ -34,7 +35,38 @@ namespace tests
 
 int main()
 {    
-    tests::test_mov();
+    std::string source = "find 255 0xFF [0x08000000:0x0800FFFF] [0x0800FFFF]";
+    
+    REPL repl;
+    
+    auto tokens = repl.split_tokens(source);
+    auto command = repl.find_command(tokens);
+     
+    try
+    {
+        for (size_t i = 1; i < tokens.size(); i++)
+        {
+            if (REPL_Argument::is_integer(tokens[i]))
+            {
+                auto v = REPL_Argument::get_integer(tokens[i]);
+                std::cout << "Integer: " << v << '\n';
+            }
+            else if (REPL_Argument::is_pointer(tokens[i]))
+            {
+                auto v = REPL_Argument::get_pointer(tokens[i]);
+                std::cout << "Pointer: [" << v << "]\n";
+            }
+            else if (REPL_Argument::is_range(tokens[i]))
+            {
+                auto v = REPL_Argument::get_range(tokens[i]);
+                std::cout << "Range: [" << v.first << ", " << v.second << ")\n";
+            }
+        }
+    } catch (std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+    // tests::test_mov();
     
     
 //     std::ifstream gba_file { "../fzero.gba", std::ios::binary };
