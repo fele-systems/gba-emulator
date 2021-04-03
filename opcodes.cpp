@@ -22,7 +22,7 @@ bool execute_LDR_immediate(GBA_Cpu& cpu, uint32_t self)
     int offset = self & 0xFFF;
             
     if (!_I) {
-        std::cout << disassemble_LDR_STR_immediate(self);
+        //std::cout << disassemble_LDR_STR_immediate(self);
                 
         if (!_U)
             offset = -offset;
@@ -44,7 +44,7 @@ bool execute_B(GBA_Cpu& cpu, uint32_t self)
     uint8_t condition = (self >> 28);
     if (!cpu.test_cond(condition))
         return true;
-    std::cout << disassemble_B(cpu, self);
+    // std::cout << disassemble_B(cpu, self);
     if (condition == 0x0F) // BLX
     {
         // uint32_t _25bit_offset = executing & 0x01FFFFFF;
@@ -73,7 +73,7 @@ bool execute_B(GBA_Cpu& cpu, uint32_t self)
 bool execute_BX(GBA_Cpu& cpu, uint32_t self)
 {
     assert(is_BX(self));
-    std::cout << disassemble_BX(cpu, self);
+    //std::cout << disassemble_BX(cpu, self);
     uint8_t condition = (self >> 28);
     if (!cpu.test_cond(condition))
         return true;
@@ -131,7 +131,7 @@ bool execute_ADD(GBA_Cpu& cpu, uint32_t self)
     uint8_t condition = (self >> 28);
     if (!cpu.test_cond(condition))
         return true;
-    std::cout << disassemble_ADD(self);
+    //std::cout << disassemble_ADD(self);
     bool _I = (self >> 25) & 1; // 2nd operand is 1=Immediate 0=Register
     bool _S = (self >> 20) & 1; // 0=ADD 1=ADDS
     uint8_t dest = (self >> 12) & 0x0F;
@@ -166,7 +166,7 @@ bool execute_STR_immediate(GBA_Cpu& cpu, uint32_t self)
     int offset = self & 0xFFF;
             
     if (!_I) {
-        std::cout << disassemble_LDR_STR_immediate(self);
+        //std::cout << disassemble_LDR_STR_immediate(self);
                 
         if (!_U)
             offset = -offset;
@@ -188,7 +188,7 @@ bool execute_MOV(GBA_Cpu& cpu, uint32_t self)
     uint8_t condition = self >> 28;
     if (!cpu.test_cond(condition))
         return true;
-    std::cout << disassemble_MOV(self);
+    //std::cout << disassemble_MOV(self);
     bool _I = (self >> 25) & 1;
     bool _S = (self >> 20) & 1;
     uint8_t _Rd = (self >> 12) & 0x0F;
@@ -209,7 +209,7 @@ bool execute_MOV(GBA_Cpu& cpu, uint32_t self)
 bool execute_LDR_thumb_1(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_LDR_thumb_1(self));
-    std::cout << disassemble_LDR_thumb_1(self);
+    //std::cout << disassemble_LDR_thumb_1(self);
     uint8_t _V = (self >> 6) & 0x1F;
     uint8_t _Rs = (self >> 3) & 0x07;
     uint8_t _Rd = self & 0x07;
@@ -222,7 +222,7 @@ bool execute_LDR_thumb_1(GBA_Cpu& cpu, uint16_t self)
 bool execute_LDR_thumb_3(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_LDR_thumb_3(self));
-    std::cout << disassemble_LDR_thumb_3(self);
+    //std::cout << disassemble_LDR_thumb_3(self);
     uint8_t _V = self & 0xFF;
     uint8_t _Rd = (self >> 8) & 0x07;
 
@@ -234,7 +234,7 @@ bool execute_LDR_thumb_3(GBA_Cpu& cpu, uint16_t self)
 bool execute_LSLS_thumb_1(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_LSLS_thumb_1(self));
-    std::cout << disassemble_LSLS_thumb_1(self);
+    //std::cout << disassemble_LSLS_thumb_1(self);
     uint8_t _V = (self >> 6) & 0x1F;
     uint8_t _Rn = (self >> 3) & 0x07;
     uint8_t _Rd = self & 0x07;
@@ -259,7 +259,7 @@ bool execute_B_thumb_1(GBA_Cpu& cpu, uint16_t self)
     uint8_t condition = (self >> 8) & 0x0F;
     if (!cpu.test_cond(condition))
         return true;
-    std::cout << disassemble_B_thumb_1(cpu, self);
+    //std::cout << disassemble_B_thumb_1(cpu, self);
     uint8_t target = self & 0xFF;
     
     cpu.PC += target * 2;
@@ -270,7 +270,7 @@ bool execute_B_thumb_1(GBA_Cpu& cpu, uint16_t self)
 bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_B_thumb_2(self));
-    std::cout << disassemble_B_thumb_2(cpu, self);
+    //std::cout << disassemble_B_thumb_2(cpu, self);
     uint16_t target = self & 0x7FF;
     
     cpu.PC += target * 2;
@@ -281,7 +281,7 @@ bool execute_B_thumb_2(GBA_Cpu& cpu, uint16_t self)
 bool execute_MOVS_thumb_1(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_MOVS_thumb_1(self));
-    std::cout << disassemble_MOVS_thumb_1(self);
+    //std::cout << disassemble_MOVS_thumb_1(self);
     
     uint8_t Rd = (self >> 10) & 0x07;
     uint8_t value = (self & 0xFF);
@@ -301,7 +301,7 @@ bool execute_MOVS_thumb_1(GBA_Cpu& cpu, uint16_t self)
 bool execute_MOVS_thumb_2(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_MOVS_thumb_2(self));
-    std::cout << disassemble_MOVS_thumb_2(self);
+    //std::cout << disassemble_MOVS_thumb_2(self);
 
     uint8_t Rs = (self >> 3) & 0x07;
     uint8_t Rd = self & 0x07;
@@ -323,7 +323,7 @@ bool execute_MOVS_thumb_2(GBA_Cpu& cpu, uint16_t self)
 bool execute_MOVS_thumb_3(GBA_Cpu& cpu, uint16_t self)
 {
     assert(is_MOVS_thumb_3(self));
-    std::cout << disassemble_MOVS_thumb_3(self);
+    //std::cout << disassemble_MOVS_thumb_3(self);
 
     uint8_t Rs = (self & 0x80) | ((self >> 3) & 0x07);
     uint8_t Rd = (self & 0x40) | (self & 0x07);

@@ -9,6 +9,19 @@ GBA_Cpu::GBA_Cpu(GBA_Memory& memory)
  {
     R[15] = 0x8000000; // ROM Start
     flush_pipeline();
+    if (cs_open(CS_ARCH_ARM, CS_MODE_ARM, &cs_arm) != CS_ERR_OK)
+        throw std::runtime_error{ "Failed to instanciate Capstone ARM engine." };
+    if (cs_open(CS_ARCH_ARM, CS_MODE_THUMB, &cs_tmb) != CS_ERR_OK)
+    {
+        cs_close(&cs_arm);
+        throw std::runtime_error{ "Failed to instanciate Capstone ARM engine." };
+    }
+}
+
+GBA_Cpu::~GBA_Cpu()
+{
+    cs_close(&cs_arm);
+    cs_close(&cs_tmb);
 }
 
 void GBA_Cpu::flush_pipeline()
@@ -79,11 +92,21 @@ bool GBA_Cpu::cycle_arm()
 {
     debug_save_registers();
     uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
-    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x} {:0>2x} {:0>2x}", PC, PC - instruction_size * 2, executing,
+    auto ins_add = PC - instruction_size * 2;
+    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x} {:0>2x} {:0>2x}", PC, ins_add, executing,
                                   (int)executing_bytes[0],
                                   (int)executing_bytes[1],
                                   (int)executing_bytes[2],
                                   (int)executing_bytes[3]);
+    cs_insn* insn;
+    auto count = cs_disasm(cs_arm, executing_bytes, 4, ins_add, 0, &insn);
+    if (count != 1)
+    {
+        return false;
+    }
+
+    fmt::print("{}\t{}", insn[0].mnemonic, insn[0].op_str);
+    cs_free(insn, count);
     auto handled = false;
 
     
@@ -113,13 +136,13 @@ bool GBA_Cpu::cycle_arm()
     }
         
     if (!handled) // Skip this switch if already handled
-    switch ((executing >> 24) & 0b00001110) // Opcode mask
-    {
-    case 0b00000010: // ALU_imm
-    {
-        uint8_t condition = (executing >> 28);
-        switch ((executing >> 21) & 0x0F)
+        switch ((executing >> 24) & 0b00001110) // Opcode mask
         {
+        case 0b00000010: // ALU_imm
+        {
+            uint8_t condition = (executing >> 28);
+            switch ((executing >> 21) & 0x0F)
+            {
             case 0X05: // ADC
             {
                 int destination_reg = (executing >> 12) & 0x0F;
@@ -130,11 +153,11 @@ bool GBA_Cpu::cycle_arm()
                 uint32_t second_operand = rotr32_shiftsq(_8bit_imm, position);
 
                 fmt::print("ADC{}{} R{}, R{}, {}",
-                            disasemble_condition(condition),
-                            set_condition ? "S" : "",
-                            destination_reg,
-                            operand_reg,
-                            second_operand);
+                    disasemble_condition(condition),
+                    set_condition ? "S" : "",
+                    destination_reg,
+                    operand_reg,
+                    second_operand);
                 fetch_next();
                 handled = true;
                 break;
@@ -150,70 +173,71 @@ bool GBA_Cpu::cycle_arm()
                 uint32_t second_operand = rotr32_shiftsq(_8bit_imm, position);
 
                 fmt::print("MOV{}{} R{}, #{}",
-                            disasemble_condition(condition),
-                            set_condition ? "S" : "",
-                            destination_reg,
-                            second_operand);
+                    disasemble_condition(condition),
+                    set_condition ? "S" : "",
+                    destination_reg,
+                    second_operand);
                 fetch_next();
                 handled = true;
                 break;
             }
-        }
-        break;
-    }
-    case 0b00000000: // MSR Transfers
-    /*
-     * MSR are instructions used for moving values (bit[25]=1) or register values (bit[25]=0)
-     * to the specified CPSR registers. Which flags will be written to is marked by bit[16..20], where:
-     *      bit[16]=Control
-     *      bit[17]=eXtension
-     *      bit[18]=Status
-     *      bit[19]=Flags
-     */
-    {
-        uint8_t condition = (executing >> 28);
-        if ( ((executing >> 23) & 0x03) == 0x02 ) // PSR Transfer
-        {
-            uint8_t psr = (executing >> 22) & 0x01;
-            assert( ((executing >> 20) & 0x01) == 0 ); // Must be 0 for this. Otherwise TST, TEQ, CMP, CMN
-            if ( ((executing >> 21) & 0x01) == 0) // MRS
-            {
             }
-            else // MSR
+            break;
+        }
+        case 0b00000000: // MSR Transfers
+        /*
+         * MSR are instructions used for moving values (bit[25]=1) or register values (bit[25]=0)
+         * to the specified CPSR registers. Which flags will be written to is marked by bit[16..20], where:
+         *      bit[16]=Control
+         *      bit[17]=eXtension
+         *      bit[18]=Status
+         *      bit[19]=Flags
+         */
+        {
+            uint8_t condition = (executing >> 28);
+            if (((executing >> 23) & 0x03) == 0x02) // PSR Transfer
             {
-                //  msr cpsr_fc, r0
-                bool write_to_flags     = (executing >> 19) & 0x01;
-                bool write_to_status    = (executing >> 18) & 0x01;
-                bool write_to_extension = (executing >> 17) & 0x01;
-                bool write_to_control   = (executing >> 16) & 0x01;
-                assert( ((executing >> 12) & 0x0F) == 0x0F);
-                
-                if (!(((executing >> 4) & 0xFF) == 0x0))
-                    break;
-                
-                assert( ((executing >> 4) & 0xFF) == 0x0); // Must be 0 for this. Otherwise BX
-                int src_register = executing & 0x0F;
-                using namespace std::string_literals;
-                std::string disassembled = "MSR"s + disasemble_condition(condition) + " ";
-                if (psr == 0) // CPSR
+                uint8_t psr = (executing >> 22) & 0x01;
+                assert(((executing >> 20) & 0x01) == 0); // Must be 0 for this. Otherwise TST, TEQ, CMP, CMN
+                if (((executing >> 21) & 0x01) == 0) // MRS
                 {
-                    disassembled += "CPSR_";
-                    if (write_to_flags) disassembled += 'F';
-                    if (write_to_status) disassembled += 'S';
-                    if (write_to_extension) disassembled += 'E';
-                    if (write_to_control) disassembled += 'C';
-                    
-                    disassembled += fmt::format(" R{}", src_register);
-                    std::cout << disassembled;
-                    fetch_next();
-                    handled = true;
-                    break;
+                }
+                else // MSR
+                {
+                    //  msr cpsr_fc, r0
+                    bool write_to_flags = (executing >> 19) & 0x01;
+                    bool write_to_status = (executing >> 18) & 0x01;
+                    bool write_to_extension = (executing >> 17) & 0x01;
+                    bool write_to_control = (executing >> 16) & 0x01;
+                    assert(((executing >> 12) & 0x0F) == 0x0F);
+
+                    if (!(((executing >> 4) & 0xFF) == 0x0))
+                        break;
+
+                    assert(((executing >> 4) & 0xFF) == 0x0); // Must be 0 for this. Otherwise BX
+                    int src_register = executing & 0x0F;
+                    using namespace std::string_literals;
+                    std::string disassembled = "MSR"s + disasemble_condition(condition) + " ";
+                    if (psr == 0) // CPSR
+                    {
+                        disassembled += "CPSR_";
+                        if (write_to_flags) disassembled += 'F';
+                        if (write_to_status) disassembled += 'S';
+                        if (write_to_extension) disassembled += 'E';
+                        if (write_to_control) disassembled += 'C';
+
+                        disassembled += fmt::format(" R{}", src_register);
+                        std::cout << disassembled;
+                        fetch_next();
+                        handled = true;
+                        break;
+                    }
                 }
             }
+            break;
         }
-        break;
-    }
-    }
+        }
+
     if (!handled) 
         std::cout << "Unhandled opcode: " << debug_info << std::endl;
     else 
@@ -228,9 +252,20 @@ bool GBA_Cpu::cycle_thumb()
 {
     debug_save_registers();
     uint8_t* executing_bytes = reinterpret_cast<uint8_t*>(&executing);
-    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x}", PC, PC - instruction_size * 2, static_cast<uint16_t>(executing),
+    auto ins_add = PC - instruction_size * 2;
+    auto debug_info = fmt::format(" ; PC={:#x}, Ins.Addr={:#x}, Opcode={:#x}, Bytes={:0>2x} {:0>2x}", PC, ins_add, static_cast<uint16_t>(executing),
         (int)executing_bytes[0],
         (int)executing_bytes[1]);
+    cs_insn* insn;
+    auto count = cs_disasm(cs_tmb, executing_bytes, 2, ins_add, 0, &insn);
+    if (count != 1)
+    {
+        return false;
+    }
+
+    fmt::print("{}\t{}", insn[0].mnemonic, insn[0].op_str);
+    cs_free(insn, count);
+
     auto handled = false;
 
     auto opcode = static_cast<uint16_t>(executing);
@@ -267,6 +302,8 @@ bool GBA_Cpu::cycle_thumb()
         handled = execute_MOVS_thumb_3(*this, opcode);
     }
 
+    
+
     if (!handled)
         std::cout << "Unhandled opcode: " << debug_info << std::endl;
     else
@@ -283,10 +320,16 @@ bool GBA_Cpu::cycle()
     if (std::find(break_points.begin(), break_points.end(), instr_addr) != break_points.end())
     {
         std::cout << "Breakpoint! @" << std::hex << instr_addr << std::endl;
+
+        REPL repl;
+
+        while (repl.running()) {
+            repl.process_command(*this);
+        }
+
         for (int i = 0; i < 16; i++)
         {
             std::cout << BLUE << fmt::format("r{} = {:#x}", i, R[i]) << RESET << std::endl;
-            
         }
     }
 
@@ -398,5 +441,15 @@ void GBA_Cpu::find_command(const std::vector<std::string>& tokens) const
     auto value = REPL_Argument::get_integer(tokens[1]);
     auto range = REPL_Argument::get_range(tokens[2]);
     
+    auto address = memory.find_word(value, range.first, range.second);
+
+    std::cout << std::hex << address << std::endl;
     
+}
+
+void GBA_Cpu::dump_command(const REPL_Signature& tokens) const
+{
+    auto range = REPL_Argument::get_range(tokens[1]);
+
+    std::cout << memory.dump(4, range.first, range.second);
 }

@@ -15,7 +15,7 @@ template<char space = ' '>
 void right_trim(std::string& input)
 {
     if (input.size() == 0) return;
-    int i = input.size() - 1;
+    auto i = input.size() - 1;
     while(input[i] == space && i >= 0) i--;
     input.resize(i + 1);
 }

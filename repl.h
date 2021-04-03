@@ -11,7 +11,7 @@ enum class REPL_ArgumentType
     POINTER = 1,
     INTEGER = 1 << 1,
     RANGE = 1 << 2,
-    OPTIONAL = 1 << 3
+    STRING = 1 << 3
 };
 
 struct REPL_Argument
@@ -48,14 +48,32 @@ class REPL
 public:
     std::vector<std::string> split_tokens(const std::string& source) const;
     const REPL_Command& find_command(const REPL_Signature& signature) const;
+    bool running() const;
+    void process_command(GBA_Cpu& cpu);
 public:
-    const std::array<REPL_Command, 1> commands = {
+    bool stop = false;
+    const std::array<REPL_Command, 4> commands = {
         REPL_Command("find",
                     {
                         { REPL_ArgumentType::INTEGER, "value", "Value to be found" },
                         { REPL_ArgumentType::RANGE, "address", "Address range to be searched" }
                     },
-                    &GBA_Cpu::find_command)
+                    &GBA_Cpu::find_command),
+        REPL_Command("dump",
+                    {
+                        { REPL_ArgumentType::RANGE, "address", "Address range to be printed" }
+                    },
+                    &GBA_Cpu::dump_command),
+        REPL_Command("dissa",
+                    {
+                        { REPL_ArgumentType::RANGE, "address", "Address range to be disassembled" }
+                    },
+                    &GBA_Cpu::dissa_command),
+        REPL_Command("disst",
+                    {
+                        { REPL_ArgumentType::RANGE, "address", "Address range to be disassembled" }
+                    },
+                    & GBA_Cpu::disst_command)
     };
 };
 

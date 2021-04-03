@@ -1,4 +1,6 @@
 #include "repl.h"
+#include "repl.h"
+#include "repl.h"
 #include <algorithm>
 #include <stdexcept>
 #include <cctype>
@@ -16,8 +18,8 @@ REPL_Command::REPL_Command(std::string name, std::vector<REPL_Argument>&& expect
 
 std::vector<std::string> REPL::split_tokens(const std::string& source) const
 {
-    auto i = source.find(' ');
-    auto j = 0;
+    size_t i = source.find(' ');
+    size_t j = 0;
     std::vector<std::string> tokens;
     
     while (i != std::string::npos)
@@ -60,6 +62,27 @@ const REPL_Command& REPL::find_command(const REPL_Signature& signature) const
     }
     
     return *command;
+}
+
+bool REPL::running() const
+{
+    return !stop;
+}
+
+void REPL::process_command(GBA_Cpu& cpu)
+{
+    std::string source;
+    std::getline(std::cin, source);
+
+    if (source == "continue")
+    {
+        stop = true;
+        return;
+    }
+
+    auto tokens = split_tokens(source);
+    auto command = find_command(tokens);
+    (cpu.*command.procedure)(tokens);
 }
 
 

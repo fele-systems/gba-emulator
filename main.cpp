@@ -4,6 +4,9 @@
 #include "GBA_Cpu.h"
 #include "repl.h"
 
+extern "C" {
+    #include <capstone/capstone.h>
+}
 namespace tests
 {
     void test_mov()
@@ -33,17 +36,19 @@ namespace tests
     }
 }
 
+#define CODE "\x2e\x00\x00\xea"
+
 int main()
 {    
     std::string source = "find 255 0xFF [0x08000000:0x0800FFFF] [0x0800FFFF]";
     
     REPL repl;
     
-    auto tokens = repl.split_tokens(source);
-    auto command = repl.find_command(tokens);
-     
+    
     try
     {
+    /*auto tokens = repl.split_tokens(source);
+    auto command = repl.find_command(tokens);
         for (size_t i = 1; i < tokens.size(); i++)
         {
             if (REPL_Argument::is_integer(tokens[i]))
@@ -61,7 +66,11 @@ int main()
                 auto v = REPL_Argument::get_range(tokens[i]);
                 std::cout << "Range: [" << v.first << ", " << v.second << ")\n";
             }
-        }
+        }*/
+        tests::test_mov();
+
+
+
     } catch (std::exception& e)
     {
         std::cout << e.what() << std::endl;

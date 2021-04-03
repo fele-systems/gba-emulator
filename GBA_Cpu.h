@@ -5,6 +5,7 @@
 #include <fmt/core.h>
 #include <iostream>
 #include "bit_utils.h"
+#include <capstone/capstone.h>
 
 //the following are UBUNTU/LINUX, and MacOS ONLY terminal color codes.
 #define RESET   "\033[0m"
@@ -32,6 +33,12 @@ public:
     enum class ExecutionMode { ARM, THUMB };
 
     GBA_Cpu(GBA_Memory& memory);
+    ~GBA_Cpu();
+    GBA_Cpu(const GBA_Cpu&) = delete;
+    GBA_Cpu& operator=(const GBA_Cpu&) = delete;
+    GBA_Cpu(GBA_Cpu&&) = delete;
+    GBA_Cpu& operator=(GBA_Cpu&&) = delete;
+
     /**
      * @brief Flushes the execution pipeline.
      * 
@@ -86,15 +93,16 @@ public:
     bool test_cond(uint8_t condition_bits) const;
 
     void add_break_point(uint32_t instruction_address);
+    void find_command(const std::vector<std::string>& tokens) const;
+    void dump_command(const std::vector<std::string>& tokens) const;
+    void dissa_command(const std::vector<std::string>& tokens) const;
+    void disst_command(const std::vector<std::string>& tokens) const;
 
-    
     void set_mode(ExecutionMode new_mode);
 
 private:
     bool cycle_arm();
     bool cycle_thumb();
-    
-    void find_command(const std::vector<std::string>& tokens) const;
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;
@@ -112,4 +120,7 @@ public:
     uint32_t R_bak[16];
     uint32_t CPSR_bak;
     std::vector<uint32_t> break_points;
+
+    csh cs_arm;
+    csh cs_tmb;
 };
