@@ -8,6 +8,10 @@ std::string disassemble_register_name(uint8_t register_number)
     {
         return "PC";
     }
+    else if (register_number == 14)
+    {
+        return "LR";
+    }
     else if (register_number == 13)
     {
         return "SP";

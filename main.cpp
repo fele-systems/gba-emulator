@@ -7,15 +7,23 @@ namespace tests
 {
     void test_mov()
     {
-        std::ifstream gba_file { "test_mov.gba", std::ios::binary };
+        std::ifstream gba_file{ "test_mov.gba", std::ios::binary };
         if (!gba_file.is_open())
         {
             std::cerr << "TEST_MOV: Could not open rom file" << std::endl;
             return;
         }
-        
+
         GBA_Memory mem;
         mem.load_rom(gba_file, nullptr);
+
+        auto pointer = mem.find_word(0xe3a0001f, GBA_Memory::rom_base, GBA_Memory::rom_base + 0xFFFF);
+
+        if (pointer != GBA_Memory::rom_base + 0xFFFF)
+        {
+            std::cout << mem.dump(4, pointer - 10, pointer + 10) << std::endl;
+        }
+        
         GBA_Cpu cpu { mem };
         cpu.add_break_point(0x800012a);
         while (cpu.cycle());

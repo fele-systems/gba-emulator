@@ -45,7 +45,16 @@ public:
     
     uint16_t read_halfword(uint32_t address) const;
 
+    uint8_t read_byte(uint32_t address) const;
+
     void write_word(uint32_t address, uint32_t word);
+
+    std::string dump(uint32_t align, uint32_t begin, uint32_t end);
+
+    uint32_t find_word(uint32_t value, uint32_t begin, uint32_t end) const;
+public:
+    static constexpr uint32_t rom_base = 0x08000000;
+    static constexpr uint32_t word_size = 4;
 private:
     std::vector<uint8_t> memory_buffer;
 };

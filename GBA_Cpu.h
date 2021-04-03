@@ -61,11 +61,7 @@ public:
      */
     bool cycle();
     
-    bool cycle_arm();
-    
-    bool cycle_thumb();
 
-    void set_mode(ExecutionMode new_mode);
     
     void debug_save_registers();
     
@@ -90,6 +86,13 @@ public:
     bool test_cond(uint8_t condition_bits) const;
 
     void add_break_point(uint32_t instruction_address);
+
+    
+    void set_mode(ExecutionMode new_mode);
+
+private:
+    bool cycle_arm();
+    bool cycle_thumb();
 public:
     uint32_t executing = 0x69696969;
     uint32_t decoding = 0x69696969;
@@ -100,6 +103,7 @@ public:
     uint32_t R[16] = { 0 };
     uint32_t CPSR = 0;
     uint32_t& PC = R[15];
+    uint32_t& LR = R[14];
     uint32_t& SP = R[13];
     ExecutionMode mode = ExecutionMode::ARM;
     

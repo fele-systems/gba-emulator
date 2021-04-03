@@ -178,3 +178,10 @@ inline bool is_MOVS_thumb_3(uint16_t self)
 {
     return (self & 0xF100) == 0xE000;
 }
+
+/**
+ * @brief Executes a long branch with link.
+ *
+ * Syntax: 
+ */
+bool execute_BL_thumb(GBA_Cpu& cpu, uint16_t self);
